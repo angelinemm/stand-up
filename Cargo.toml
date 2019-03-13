@@ -1,0 +1,12 @@
+[package]
+name = "stand_up"
+version = "0.1.0"
+authors = ["Angeline Mulet-Marquis <angelinemm@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+config = "0.9.2"
+chrono = "0.4.6"
+slack_api = { package = "slack", version = "0.22.0" }
+# reqwest needs to be the same version as the one used in slack_api above
+reqwest = "0.9"
