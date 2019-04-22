@@ -139,6 +139,7 @@ impl StandUp {
 
     pub fn stand_up_loop(&mut self) {
         let ten_seconds = time::Duration::from_secs(10);
+        let channel_timeout = time::Duration::from_millis(10);
         loop {
             if self.asked_today() {
                 println!("Already asked today");
@@ -147,8 +148,10 @@ impl StandUp {
                 self.q1();
                 self.last_asked = Utc::now();
             }
-            let message = self.receiver.recv().unwrap();
-            self.handle_message(&message);
+            let maybe_message = self.receiver.recv_timeout(channel_timeout);
+            if let Some(message) = maybe_message.ok() {
+                self.handle_message(&message);
+            }
             thread::sleep(ten_seconds);
         }
     }
