@@ -144,9 +144,9 @@ impl Bot {
                 self.q1();
                 self.last_asked = Utc::now();
             }
-            let maybe_message = self.receiver.recv_timeout(channel_timeout);
-            if let Some(message) = maybe_message.ok() {
-                self.handle_message(&message);
+            match self.receiver.recv_timeout(channel_timeout) {
+                Ok(message) => self.handle_message(&message),
+                Err(_) => {}
             }
             thread::sleep(ten_seconds);
         }
