@@ -1,8 +1,8 @@
+mod bot;
 mod handler;
-mod stand_up;
 
+use crate::bot::{get_slack_config, Bot};
 use crate::handler::MyHandler;
-use crate::stand_up::{get_slack_config, StandUp};
 use config;
 use slack_api::{api, Message as SlackMessage, RtmClient};
 use std::sync::mpsc;
@@ -26,8 +26,8 @@ fn main() {
         }
     });
     let stand_up_bot_thread = thread::spawn(move || {
-        let mut stand_up = StandUp::new(web_cli, receiver, stand_up_config);
-        stand_up.stand_up_loop();
+        let mut bot = Bot::new(web_cli, receiver, stand_up_config);
+        bot.stand_up_loop();
     });
     listener_thread.join().unwrap();
     stand_up_bot_thread.join().unwrap();

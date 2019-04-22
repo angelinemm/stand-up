@@ -74,7 +74,7 @@ pub struct TeamMember {
     pub dm_id: String,
 }
 
-pub struct StandUp {
+pub struct Bot {
     pub client: Client,
     pub api_key: String,
     pub receiver: Receiver<SlackMessage>,
@@ -83,13 +83,9 @@ pub struct StandUp {
     pub last_asked: DateTime<Utc>,
 }
 
-impl StandUp {
-    pub fn new(
-        client: Client,
-        receiver: Receiver<SlackMessage>,
-        slack_config: SlackConfig,
-    ) -> StandUp {
-        StandUp {
+impl Bot {
+    pub fn new(client: Client, receiver: Receiver<SlackMessage>, slack_config: SlackConfig) -> Bot {
+        Bot {
             client,
             api_key: slack_config.api_key,
             receiver,
