@@ -1,4 +1,4 @@
-use chrono::{DateTime, Datelike, Duration, Utc, MIN_DATE};
+use chrono::{DateTime, Datelike, Utc, MIN_DATE};
 use config::Config;
 use reqwest::Client;
 use slack_api::{api, Message as SlackMessage, RtmClient, User as SlackUser};
@@ -96,7 +96,14 @@ impl Bot {
     }
 
     fn asked_today(&self) -> bool {
-        (Utc::now() - self.last_asked) < Duration::days(1)
+        let now = Utc::now();
+        if now.year() == self.last_asked.year()
+            && now.month() == self.last_asked.month()
+            && now.day() == self.last_asked.day()
+        {
+            return true;
+        }
+        false
     }
 
     fn post_message(&self, channel_id: &str, message: &str) {
