@@ -1,4 +1,4 @@
-use chrono::{DateTime, Datelike, Utc, MIN_DATE};
+use chrono::{DateTime, Datelike, Utc};
 use config::Config;
 use reqwest::Client;
 use slack_api::{api, Message as SlackMessage, RtmClient, User as SlackUser};
@@ -80,7 +80,12 @@ pub struct Bot {
     pub receiver: Receiver<SlackMessage>,
     pub channel_id: String,
     pub team_members: Vec<TeamMember>,
-    pub last_asked: DateTime<Utc>,
+    pub state: BotState,
+}
+
+pub enum BotState {
+    NotAskedYet,
+    Asked { last_asked: DateTime<Utc> },
 }
 
 impl Bot {
@@ -91,19 +96,20 @@ impl Bot {
             receiver,
             channel_id: slack_config.channel_id,
             team_members: slack_config.team_members,
-            last_asked: MIN_DATE.and_hms(0, 0, 0),
+            state: BotState::NotAskedYet,
         }
     }
 
     fn asked_today(&self) -> bool {
-        let now = Utc::now();
-        if now.year() == self.last_asked.year()
-            && now.month() == self.last_asked.month()
-            && now.day() == self.last_asked.day()
-        {
-            return true;
+        match self.state {
+            BotState::NotAskedYet => false,
+            BotState::Asked { last_asked } => {
+                let now = Utc::now();
+                (now.year() == last_asked.year()
+                    && now.month() == last_asked.month()
+                    && now.day() == last_asked.day())
+            }
         }
-        false
     }
 
     fn post_message(&self, channel_id: &str, message: &str) {
@@ -140,20 +146,25 @@ impl Bot {
         }
     }
 
-    pub fn stand_up_loop(&mut self) {
+    pub fn stand_up_machine(&mut self) {
         let ten_seconds = time::Duration::from_secs(10);
         let channel_timeout = time::Duration::from_millis(10);
         loop {
-            if self.asked_today() {
-                println!("Already asked today");
-            } else {
-                self.say_hello();
-                self.q1();
-                self.last_asked = Utc::now();
-            }
-            match self.receiver.recv_timeout(channel_timeout) {
-                Ok(message) => self.handle_message(&message),
-                Err(_) => {}
+            match self.state {
+                BotState::NotAskedYet => {
+                    self.say_hello();
+                    self.q1();
+                    self.state = BotState::Asked {
+                        last_asked: Utc::now(),
+                    }
+                }
+                BotState::Asked { last_asked: _ } => match self.asked_today() {
+                    true => match self.receiver.recv_timeout(channel_timeout) {
+                        Ok(message) => self.handle_message(&message),
+                        Err(_) => {}
+                    },
+                    false => self.state = BotState::NotAskedYet,
+                },
             }
             thread::sleep(ten_seconds);
         }

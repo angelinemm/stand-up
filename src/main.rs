@@ -27,7 +27,7 @@ fn main() {
     });
     let stand_up_bot_thread = thread::spawn(move || {
         let mut bot = Bot::new(web_cli, receiver, stand_up_config);
-        bot.stand_up_loop();
+        bot.stand_up_machine();
     });
     listener_thread.join().unwrap();
     stand_up_bot_thread.join().unwrap();
