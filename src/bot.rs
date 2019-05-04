@@ -70,11 +70,8 @@ impl Bot {
         let channel_timeout = time::Duration::from_millis(10);
         loop {
             // First, consume all messages in the channel
-            loop {
-                match self.receiver.recv_timeout(channel_timeout) {
-                    Ok(message) => self.handle_message(&message),
-                    Err(_) => break,
-                }
+            while let Ok(message) = self.receiver.recv_timeout(channel_timeout) {
+                self.handle_message(&message);
             }
             // Then, maybe advance state machine
             let now = Utc::now();
