@@ -1,7 +1,7 @@
 mod bot;
 mod handler;
 
-use crate::bot::{get_slack_config, Bot};
+use crate::bot::{get_stand_up_config, Bot};
 use crate::handler::MyHandler;
 use config;
 use slack_api::{api, Message as SlackMessage, RtmClient};
@@ -15,7 +15,7 @@ fn main() {
     let api_key: String = config.get_str("api_key").unwrap();
     let (sender, receiver): (Sender<SlackMessage>, Receiver<SlackMessage>) = mpsc::channel();
     let ws_cli = RtmClient::login(&api_key).expect("Can't login websocket client");
-    let stand_up_config = get_slack_config(&ws_cli, &config);
+    let stand_up_config = get_stand_up_config(&ws_cli, &config);
     let web_cli = api::requests::default_client().unwrap();
     let listener_thread = thread::spawn(move || {
         let mut handler = MyHandler { sender };
