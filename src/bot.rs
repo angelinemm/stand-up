@@ -67,8 +67,8 @@ impl Bot {
     pub fn stand_up_machine(&mut self) {
         let ten_seconds = time::Duration::from_secs(10);
         let channel_timeout = time::Duration::from_millis(10);
-        let now = Utc::now();
         loop {
+            let now = Utc::now();
             match self.state {
                 BotState::TooEarly { stand_up_time } => {
                     println!("STATE: Too early for standup!");
