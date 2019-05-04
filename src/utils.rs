@@ -1,20 +1,7 @@
-use chrono::{DateTime, Datelike, Timelike, Utc, Weekday};
+use chrono::{DateTime, Timelike, Utc};
 use config::Config;
 use slack_api::{RtmClient, User as SlackUser};
 use std::fmt;
-
-pub fn printable_today() -> String {
-    match Utc::now().weekday() {
-        Weekday::Mon => "Monday",
-        Weekday::Tue => "Tuesday",
-        Weekday::Wed => "Wednesday",
-        Weekday::Thu => "Thursday",
-        Weekday::Fri => "Friday",
-        Weekday::Sat => "Saturday",
-        Weekday::Sun => "Sunday",
-    }
-    .to_string()
-}
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Period {

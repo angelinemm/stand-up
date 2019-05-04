@@ -1,4 +1,4 @@
-use crate::utils::{printable_today, StandUpConfig, TeamMember};
+use crate::utils::{StandUpConfig, TeamMember};
 use chrono::{DateTime, Utc};
 use reqwest::Client;
 use slack_api::{api, Message as SlackMessage};
@@ -53,7 +53,7 @@ impl Bot {
             &format!(
                 "Hello {}, it's {}! Time for your daily stand-up!",
                 team_member,
-                printable_today()
+                Utc::now().format("%A"),
             ),
         );
     }
