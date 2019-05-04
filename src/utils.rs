@@ -1,6 +1,7 @@
 use chrono::{DateTime, Timelike, Utc};
 use config::Config;
 use slack_api::{RtmClient, User as SlackUser};
+use std::fmt;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Period {
@@ -60,10 +61,17 @@ pub struct StandUpConfig {
     pub stand_up_time: TimeOfDay,
 }
 
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct TeamMember {
     pub name: String,
     pub id: String,
     pub dm_id: String,
+}
+
+impl fmt::Display for TeamMember {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 pub fn get_stand_up_config(client: &RtmClient, config: &Config) -> StandUpConfig {
