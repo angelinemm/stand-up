@@ -1,8 +1,10 @@
 mod bot;
 mod handler;
+mod utils;
 
-use crate::bot::{get_stand_up_config, Bot};
+use crate::bot::Bot;
 use crate::handler::MyHandler;
+use crate::utils::get_stand_up_config;
 use config;
 use slack_api::{api, Message as SlackMessage, RtmClient};
 use std::sync::mpsc;
