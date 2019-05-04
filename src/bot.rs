@@ -15,7 +15,7 @@ pub struct Bot {
 
 pub enum State {
     TooEarly { stand_up_time: DateTime<Utc> },
-    Asked,
+    Asked { question: u8 },
     Done,
 }
 
@@ -58,11 +58,9 @@ impl Bot {
         );
     }
 
-    fn q1(&self, team_member: &TeamMember) {
-        self.post_message(
-            &team_member.dm_id,
-            &format!("So {}, what were you up to yesterday?", team_member),
-        );
+    fn question(&self, team_member: &TeamMember, question: u8) {
+        let question = &self.config.questions[(question - 1) as usize];
+        self.post_message(&team_member.dm_id, question);
     }
 
     pub fn stand_up_machine(&mut self) {
@@ -81,13 +79,14 @@ impl Bot {
                     Some(State::TooEarly { stand_up_time }) => {
                         println!("STATE ({}): Too early for standup!", team_member);
                         if now > *stand_up_time {
-                            println!("TRANSITION ({}): now asking stand up", team_member);
+                            println!("TRANSITION ({}): now asking first question", team_member);
                             self.say_hello(team_member);
-                            self.q1(team_member);
-                            self.state.insert((*team_member).clone(), State::Asked);
+                            self.question(team_member, 1);
+                            self.state
+                                .insert((*team_member).clone(), State::Asked { question: 1 });
                         }
                     }
-                    Some(State::Asked) => {
+                    Some(State::Asked { .. }) => {
                         println!("STATE ({}): Stand up has been asked", team_member);
                         if now < self.config.stand_up_time.today().unwrap() {
                             // means we are next day
@@ -149,15 +148,36 @@ impl Bot {
                 .find(|m| m.id == *answer_user)
                 .expect("Message from unknown user");
 
-            self.post_message(
-                &self.config.channel_id,
-                &format!("{}: {}", team_member.name, answer),
-            );
-            println!(
-                "TRANSITION ({}): Message received, standup done for today",
-                team_member
-            );
-            self.state.insert((*team_member).clone(), State::Done);
+            let state = self.state.get(team_member);
+            match state {
+                Some(State::Asked { question: i }) => {
+                    self.post_message(
+                        &self.config.channel_id,
+                        &format!("{}: {}", team_member, answer),
+                    );
+                    if *i == self.config.number_of_questions {
+                        // It was the last question
+                        println!(
+                            "TRANSITION ({}): Answer to last question received. Stand up done",
+                            team_member
+                        );
+                        self.state.insert((*team_member).clone(), State::Done);
+                    } else {
+                        // Next question
+                        println!(
+                            "TRANSITION ({}): Answer to question {} received. Next question.",
+                            team_member, i
+                        );
+                        self.question(team_member, i + 1);
+                        self.state
+                            .insert((*team_member).clone(), State::Asked { question: i + 1 });
+                    }
+                }
+                None | _ => {
+                    println!("Unexpected message received. Ignoring");
+                    return;
+                }
+            }
         }
     }
 }

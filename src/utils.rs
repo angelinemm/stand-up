@@ -72,6 +72,8 @@ pub struct StandUpConfig {
     pub channel_id: String,
     pub team_members: Vec<TeamMember>,
     pub stand_up_time: TimeOfDay,
+    pub number_of_questions: u8,
+    pub questions: Vec<String>,
 }
 
 #[derive(Clone, Eq, PartialEq, Hash)]
@@ -91,6 +93,10 @@ pub fn get_stand_up_config(client: &RtmClient, config: &Config) -> StandUpConfig
     let api_key: String = config.get_str("api_key").unwrap();
     let channel: String = config.get_str("channel").unwrap();
     let stand_up_time = TimeOfDay::from_str(&config.get_str("stand_up_time").unwrap()).unwrap();
+    let number_of_questions: u8 = config.get_int("number_of_questions").unwrap() as u8;
+    let questions: Vec<String> = (1..=number_of_questions)
+        .map(|i| config.get_str(&format!("q{}", i)).unwrap())
+        .collect();
     let team_members: Vec<String> = config
         .get_str("team_members")
         .unwrap()
@@ -143,6 +149,8 @@ pub fn get_stand_up_config(client: &RtmClient, config: &Config) -> StandUpConfig
         channel_id,
         team_members,
         stand_up_time,
+        number_of_questions,
+        questions,
     }
 }
 
