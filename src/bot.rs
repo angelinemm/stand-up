@@ -1,5 +1,5 @@
-use crate::utils::{StandUpConfig, TeamMember};
-use chrono::{DateTime, Datelike, Utc};
+use crate::utils::{printable_today, StandUpConfig, TeamMember};
+use chrono::{DateTime, Utc};
 use reqwest::Client;
 use slack_api::{api, Message as SlackMessage};
 use std::collections::HashMap;
@@ -48,12 +48,12 @@ impl Bot {
     }
 
     fn say_hello(&self, team_member: &TeamMember) {
-        let day = Utc::now().weekday();
         self.post_message(
             &team_member.dm_id,
             &format!(
-                "Hello {}, it's {:?}day! Time for your daily stand-up!",
-                team_member, day
+                "Hello {}, it's {}! Time for your daily stand-up!",
+                team_member,
+                printable_today()
             ),
         );
     }
