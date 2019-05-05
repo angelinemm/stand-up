@@ -21,8 +21,12 @@ pub enum State {
 }
 
 impl Bot {
-    pub fn new(client: Client, receiver: Receiver<SlackMessage>, config: StandUpConfig) -> Bot {
-        let stand_up_time = config.stand_up_time.today().unwrap();
+    pub fn new(
+        client: Client,
+        receiver: Receiver<SlackMessage>,
+        config: StandUpConfig,
+    ) -> Result<Bot, ()> {
+        let stand_up_time = config.stand_up_time.today()?;
         let initial_state: HashMap<TeamMember, State> = config
             .team_members
             .iter()
@@ -33,13 +37,13 @@ impl Bot {
             .iter()
             .map(|m| ((*m).clone(), Vec::new()))
             .collect();
-        Bot {
+        Ok(Bot {
             client,
             receiver,
             state: initial_state,
             config,
             cache: initial_cache,
-        }
+        })
     }
 
     fn post_message(&self, channel_id: &str, message: &str) {
