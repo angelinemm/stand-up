@@ -1,4 +1,4 @@
-use slack_api::{Event, EventHandler, Message as SlackMessage, RtmClient};
+use slack::{Event, EventHandler, Message as SlackMessage, RtmClient};
 use std::sync::mpsc::Sender;
 
 pub struct MyHandler {

@@ -6,7 +6,7 @@ use crate::bot::Bot;
 use crate::handler::MyHandler;
 use crate::utils::get_stand_up_config;
 use config;
-use slack_api::{api, Message as SlackMessage, RtmClient};
+use slack::{api, Message as SlackMessage, RtmClient};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;

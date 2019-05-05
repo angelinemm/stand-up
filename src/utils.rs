@@ -1,6 +1,6 @@
 use chrono::{DateTime, Timelike, Utc};
 use config::Config;
-use slack_api::{RtmClient, User as SlackUser};
+use slack::{RtmClient, User as SlackUser};
 use std::fmt;
 
 #[derive(Debug, Eq, PartialEq)]

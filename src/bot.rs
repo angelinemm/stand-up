@@ -1,7 +1,7 @@
 use crate::utils::{StandUpConfig, TeamMember};
 use chrono::{DateTime, Utc};
 use reqwest::Client;
-use slack_api::{api, Message as SlackMessage};
+use slack::{api, Message as SlackMessage};
 use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 use std::{thread, time};
