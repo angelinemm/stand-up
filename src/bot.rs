@@ -11,6 +11,7 @@ pub struct Bot {
     pub receiver: Receiver<SlackMessage>,
     pub state: HashMap<TeamMember, State>, // stand up state by user
     pub config: StandUpConfig,
+    pub cache: HashMap<TeamMember, Vec<String>>,
 }
 
 pub enum State {
@@ -27,11 +28,17 @@ impl Bot {
             .iter()
             .map(|m| ((*m).clone(), State::TooEarly { stand_up_time }))
             .collect();
+        let initial_cache: HashMap<TeamMember, Vec<String>> = config
+            .team_members
+            .iter()
+            .map(|m| ((*m).clone(), Vec::new()))
+            .collect();
         Bot {
             client,
             receiver,
             state: initial_state,
             config,
+            cache: initial_cache,
         }
     }
 
@@ -61,6 +68,20 @@ impl Bot {
     fn question(&self, team_member: &TeamMember, question: u8) {
         let question = &self.config.questions[(question - 1) as usize];
         self.post_message(&team_member.dm_id, question);
+    }
+
+    fn post_stand_up(&mut self, team_member: &TeamMember) {
+        let stand_up: Vec<String> = self.cache.remove(team_member).unwrap_or_default();
+        let stand_up_message: String = (1..=self.config.number_of_questions)
+            .map(|i| i as usize)
+            .map(|i| format!("*{}*: {}", self.config.questions[i - 1], stand_up[i - 1]))
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        self.post_message(
+            &self.config.channel_id,
+            &format!("*{}*\n{}", team_member, stand_up_message),
+        );
     }
 
     pub fn stand_up_machine(&mut self) {
@@ -146,31 +167,32 @@ impl Bot {
                 .team_members
                 .iter()
                 .find(|m| m.id == *answer_user)
-                .expect("Message from unknown user");
+                .expect("Message from unknown user")
+                .clone();
 
-            let state = self.state.get(team_member);
+            let state = self.state.get(&team_member);
             match state {
                 Some(State::Asked { question: i }) => {
-                    self.post_message(
-                        &self.config.channel_id,
-                        &format!("{}: {}", team_member, answer),
-                    );
+                    let mut answers: Vec<String> = self.cache[&team_member].to_vec();
+                    answers.push(answer.to_string());
+                    self.cache.insert(team_member.clone(), answers);
                     if *i == self.config.number_of_questions {
                         // It was the last question
                         println!(
                             "TRANSITION ({}): Answer to last question received. Stand up done",
                             team_member
                         );
-                        self.state.insert((*team_member).clone(), State::Done);
+                        self.post_stand_up(&team_member);
+                        self.state.insert(team_member, State::Done);
                     } else {
                         // Next question
                         println!(
                             "TRANSITION ({}): Answer to question {} received. Next question.",
                             team_member, i
                         );
-                        self.question(team_member, i + 1);
+                        self.question(&team_member, i + 1);
                         self.state
-                            .insert((*team_member).clone(), State::Asked { question: i + 1 });
+                            .insert(team_member, State::Asked { question: i + 1 });
                     }
                 }
                 None | _ => {
