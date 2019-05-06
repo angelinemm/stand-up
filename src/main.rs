@@ -7,13 +7,21 @@ use crate::handler::MyHandler;
 use crate::utils::get_stand_up_config;
 use config;
 use slack::{api, Message as SlackMessage, RtmClient};
+use std::env;
+use std::path::Path;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 fn main() {
     let mut config = config::Config::default();
-    config.merge(config::File::with_name("Settings")).unwrap();
+    let config_path = match env::var("STAND_UP_CONFIG") {
+        Ok(val) => val,
+        Err(_) => "./Settings.toml".to_string(),
+    };
+    config
+        .merge(config::File::from(Path::new(&config_path)))
+        .unwrap();
     let api_key: String = config.get_str("api_key").unwrap();
     let (sender, receiver): (Sender<SlackMessage>, Receiver<SlackMessage>) = mpsc::channel();
     let ws_cli = RtmClient::login(&api_key).expect("Can't login websocket client");
