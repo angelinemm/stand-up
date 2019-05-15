@@ -5,4 +5,8 @@ jobs:
       - image: circleci/rust:1.34.1
     steps:
       - checkout
-      - run: echo "Hello Circleci"
+      - run:
+          name: Check formatting
+          command: |
+            rustup component add rustfmt
+            cargo fmt --all -- --check
