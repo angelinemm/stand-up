@@ -1,0 +1,8 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/rust:1.34.1
+    steps:
+      - checkout
+      - run: echo "Hello Circleci"
