@@ -89,7 +89,7 @@ pub fn get_stand_up_config(client: &RtmClient, config: &Config) -> Result<StandU
         .get_str("team_members")
         .unwrap()
         .split(',')
-        .map(|s| s.to_string())
+        .map(ToString::to_string)
         .collect();
     let channel_id = client
         .start_response()
