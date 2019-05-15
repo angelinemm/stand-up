@@ -19,3 +19,7 @@ jobs:
           name: Cargo check
           command: |
             cargo check
+      - run:
+          name: Unittests
+          command: |
+            cargo test
