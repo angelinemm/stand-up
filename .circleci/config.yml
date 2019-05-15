@@ -10,3 +10,8 @@ jobs:
           command: |
             rustup component add rustfmt
             cargo fmt --all -- --check
+      - run:
+          name: Check clippy
+          command: |
+            rustup component add clippy
+            cargo clippy -- -D warnings
