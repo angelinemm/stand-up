@@ -15,3 +15,7 @@ jobs:
           command: |
             rustup component add clippy
             cargo clippy -- -D warnings
+      - run:
+          name: Cargo check
+          command: |
+            cargo check
