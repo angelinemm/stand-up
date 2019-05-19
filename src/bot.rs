@@ -92,11 +92,7 @@ impl Bot {
         let ten_seconds = time::Duration::from_secs(10);
         let channel_timeout = time::Duration::from_millis(10);
         loop {
-            // First, consume all messages in the channel
-            while let Ok(message) = self.receiver.recv_timeout(channel_timeout) {
-                self.handle_message(&message);
-            }
-            // Then, check if we are on a new day
+            // First, do we need to change the day?
             let now = Utc::now();
             let todays_standup = self
                 .config
@@ -104,7 +100,6 @@ impl Bot {
                 .today()
                 .expect("Could not find stand up time for today");
             if now < todays_standup {
-                // means we are next day
                 for team_member in self.config.team_members.iter() {
                     println!("TRANSITION ({}): Day change", team_member);
                     self.state.insert(
@@ -116,7 +111,7 @@ impl Bot {
                 }
                 break;
             }
-            // Then, maybe advance state machine
+            // Then, see if we need to trigger stand up
             for team_member in self.config.team_members.iter() {
                 let state = self.state.get(&team_member);
                 match state {
@@ -138,6 +133,10 @@ impl Bot {
                     }
                     None => println!("Cannot find state for {}", team_member),
                 }
+            }
+            // Last, consume all messages in the channel
+            while let Ok(message) = self.receiver.recv_timeout(channel_timeout) {
+                self.handle_message(&message);
             }
             thread::sleep(ten_seconds);
         }
