@@ -96,11 +96,16 @@ impl Bot {
             while let Ok(message) = self.receiver.recv_timeout(channel_timeout) {
                 self.handle_message(&message);
             }
-            for team_member in self.config.team_members.iter() {
-                // Then, check if we are on a new day
-                let now = Utc::now();
-                if now < self.config.stand_up_time.today().unwrap() {
-                    // means we are next day
+            // Then, check if we are on a new day
+            let now = Utc::now();
+            let todays_standup = self
+                .config
+                .stand_up_time
+                .today()
+                .expect("Could not find stand up time for today");
+            if now < todays_standup {
+                // means we are next day
+                for team_member in self.config.team_members.iter() {
                     println!("TRANSITION ({}): Day change", team_member);
                     self.state.insert(
                         (*team_member).clone(),
@@ -108,28 +113,30 @@ impl Bot {
                             stand_up_time: self.config.stand_up_time.today().unwrap(),
                         },
                     );
-                } else {
-                    // Then, maybe advance state machine
-                    let state = self.state.get(&team_member);
-                    match state {
-                        Some(State::TooEarly { stand_up_time }) => {
-                            println!("STATE ({}): Too early for standup!", team_member);
-                            if now > *stand_up_time {
-                                println!("TRANSITION ({}): now asking first question", team_member);
-                                self.say_hello(team_member);
-                                self.question(team_member, 1);
-                                self.state
-                                    .insert((*team_member).clone(), State::Asked { question: 1 });
-                            }
+                }
+                break;
+            }
+            // Then, maybe advance state machine
+            for team_member in self.config.team_members.iter() {
+                let state = self.state.get(&team_member);
+                match state {
+                    Some(State::TooEarly { stand_up_time }) => {
+                        println!("STATE ({}): Too early for standup!", team_member);
+                        if now > *stand_up_time {
+                            println!("TRANSITION ({}): now asking first question", team_member);
+                            self.say_hello(team_member);
+                            self.question(team_member, 1);
+                            self.state
+                                .insert((*team_member).clone(), State::Asked { question: 1 });
                         }
-                        Some(State::Asked { .. }) => {
-                            println!("STATE ({}): Stand up has been asked", team_member);
-                        }
-                        Some(State::Done) => {
-                            println!("STATE ({}): Stand up is done for the day", team_member);
-                        }
-                        None => println!("Cannot find state for {}", team_member),
                     }
+                    Some(State::Asked { .. }) => {
+                        println!("STATE ({}): Stand up has been asked", team_member);
+                    }
+                    Some(State::Done) => {
+                        println!("STATE ({}): Stand up is done for the day", team_member);
+                    }
+                    None => println!("Cannot find state for {}", team_member),
                 }
             }
             thread::sleep(ten_seconds);
