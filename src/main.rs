@@ -12,6 +12,9 @@ use std::path::Path;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
+#[macro_use]
+#[cfg(test)]
+extern crate assert_matches;
 
 fn main() {
     let mut config = config::Config::default();

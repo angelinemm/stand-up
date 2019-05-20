@@ -6,6 +6,9 @@ use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 use std::{thread, time};
 
+static CHANNEL_TIMEOUT: time::Duration = time::Duration::from_millis(10);
+static SLEEP_TIME: time::Duration = time::Duration::from_secs(10);
+
 pub struct Bot {
     pub client: Client,
     pub receiver: Receiver<SlackMessage>,
@@ -14,6 +17,7 @@ pub struct Bot {
     pub cache: HashMap<TeamMember, Vec<String>>,
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum State {
     TooEarly { stand_up_time: DateTime<Utc> },
     Asked { question: u8 },
@@ -88,57 +92,52 @@ impl Bot {
         );
     }
 
+    pub fn maybe_advance_machine(
+        &mut self,
+        machine_time: DateTime<Utc>,
+        stand_up_time: DateTime<Utc>,
+    ) {
+        // First, check if day has changed
+        if machine_time < stand_up_time {
+            for team_member in self.config.team_members.iter() {
+                println!("TRANSITION ({}): Day change", team_member);
+                self.state
+                    .insert((*team_member).clone(), State::TooEarly { stand_up_time });
+            }
+            return;
+        }
+        for team_member in self.config.team_members.iter() {
+            let state = self.state.get(&team_member);
+            match state {
+                Some(State::TooEarly { stand_up_time }) => {
+                    if machine_time > *stand_up_time {
+                        println!("TRANSITION ({}): now asking first question", team_member);
+                        self.say_hello(team_member);
+                        self.question(team_member, 1);
+                        self.state
+                            .insert((*team_member).clone(), State::Asked { question: 1 });
+                    }
+                }
+                Some(State::Asked { .. }) | Some(State::Done) => (),
+                None => println!("Cannot find state for {}", team_member),
+            }
+        }
+        // Last, consume all messages in the channel
+        while let Ok(message) = self.receiver.recv_timeout(CHANNEL_TIMEOUT) {
+            self.handle_message(&message);
+        }
+    }
+
     pub fn stand_up_machine(&mut self) {
-        let ten_seconds = time::Duration::from_secs(10);
-        let channel_timeout = time::Duration::from_millis(10);
         loop {
-            // First, do we need to change the day?
             let now = Utc::now();
             let todays_standup = self
                 .config
                 .stand_up_time
                 .today()
                 .expect("Could not find stand up time for today");
-            if now < todays_standup {
-                for team_member in self.config.team_members.iter() {
-                    println!("TRANSITION ({}): Day change", team_member);
-                    self.state.insert(
-                        (*team_member).clone(),
-                        State::TooEarly {
-                            stand_up_time: self.config.stand_up_time.today().unwrap(),
-                        },
-                    );
-                }
-                break;
-            }
-            // Then, see if we need to trigger stand up
-            for team_member in self.config.team_members.iter() {
-                let state = self.state.get(&team_member);
-                match state {
-                    Some(State::TooEarly { stand_up_time }) => {
-                        println!("STATE ({}): Too early for standup!", team_member);
-                        if now > *stand_up_time {
-                            println!("TRANSITION ({}): now asking first question", team_member);
-                            self.say_hello(team_member);
-                            self.question(team_member, 1);
-                            self.state
-                                .insert((*team_member).clone(), State::Asked { question: 1 });
-                        }
-                    }
-                    Some(State::Asked { .. }) => {
-                        println!("STATE ({}): Stand up has been asked", team_member);
-                    }
-                    Some(State::Done) => {
-                        println!("STATE ({}): Stand up is done for the day", team_member);
-                    }
-                    None => println!("Cannot find state for {}", team_member),
-                }
-            }
-            // Last, consume all messages in the channel
-            while let Ok(message) = self.receiver.recv_timeout(channel_timeout) {
-                self.handle_message(&message);
-            }
-            thread::sleep(ten_seconds);
+            self.maybe_advance_machine(now, todays_standup);
+            thread::sleep(SLEEP_TIME);
         }
     }
 
@@ -203,5 +202,48 @@ impl Bot {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::{TeamMember, TimeOfDay};
+    use chrono::Duration;
+    use std::sync::mpsc;
+
+    #[test]
+    fn stand_up_story() {
+        let bob = TeamMember {
+            name: "bob".to_string(),
+            id: "123xx".to_string(),
+            dm_id: "dm_id".to_string(),
+        };
+        let config = StandUpConfig {
+            api_key: "mock".to_string(),
+            channel_id: "dummy".to_string(),
+            team_members: vec![bob.clone()],
+            stand_up_time: TimeOfDay::from_str("9:00AM").unwrap(),
+            number_of_questions: 1,
+            questions: vec!["What's up?".to_string()],
+        };
+        let client = Client::new();
+        let (_, receiver): (_, Receiver<SlackMessage>) = mpsc::channel();
+        let mut bot = Bot::new(client, receiver, config).unwrap();
+
+        // Check initial state is "too early"
+        assert_matches!(*bot.state.get(&bob).unwrap(), State::TooEarly{ stand_up_time: _ });
+
+        // stand up time has passed, check state is question asked
+        let mut now = Utc::now();
+        let mut stand_up_time = now - Duration::minutes(10);
+        bot.maybe_advance_machine(now, stand_up_time);
+        assert_eq!(bot.state.get(&bob).unwrap(), &State::Asked { question: 1 });
+
+        // a day has passed!
+        now = now + Duration::days(1);
+        stand_up_time = now + Duration::days(1);
+        bot.maybe_advance_machine(now, stand_up_time);
+        assert_matches!(*bot.state.get(&bob).unwrap(), State::TooEarly{ stand_up_time: _ });
     }
 }
