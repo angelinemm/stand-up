@@ -97,15 +97,6 @@ impl Bot {
         machine_time: DateTime<Utc>,
         stand_up_time: DateTime<Utc>,
     ) {
-        // First, check if day has changed
-        if machine_time < stand_up_time {
-            for team_member in self.config.team_members.iter() {
-                println!("TRANSITION ({}): Day change", team_member);
-                self.state
-                    .insert((*team_member).clone(), State::TooEarly { stand_up_time });
-            }
-            return;
-        }
         for team_member in self.config.team_members.iter() {
             let state = self.state.get(&team_member);
             match state {
@@ -118,7 +109,13 @@ impl Bot {
                             .insert((*team_member).clone(), State::Asked { question: 1 });
                     }
                 }
-                Some(State::Asked { .. }) | Some(State::Done) => (),
+                Some(State::Asked { .. }) | Some(State::Done) => {
+                    if machine_time < stand_up_time {
+                        println!("TRANSITION ({}): Day change", team_member);
+                        self.state
+                            .insert((*team_member).clone(), State::TooEarly { stand_up_time });
+                    }
+                }
                 None => println!("Cannot find state for {}", team_member),
             }
         }
