@@ -79,7 +79,8 @@ impl Bot {
     }
 
     fn post_stand_up(&mut self, team_member: &TeamMember) {
-        let stand_up: Vec<String> = self.cache.remove(team_member).unwrap_or_default();
+        let stand_up: Vec<String> = self.cache[team_member].to_vec();
+        self.cache.insert(team_member.clone(), Vec::new());
         let stand_up_message: String = (1..=self.config.number_of_questions)
             .map(|i| i as usize)
             .map(|i| format!("*{}*: {}", self.config.questions[i - 1], stand_up[i - 1]))
