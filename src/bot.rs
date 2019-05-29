@@ -113,6 +113,7 @@ impl Bot {
                 Some(State::Asked { .. }) | Some(State::Done) => {
                     if machine_time < stand_up_time {
                         println!("TRANSITION ({}): Day change", team_member);
+                        self.cache.insert(team_member.clone(), Vec::new());
                         self.state
                             .insert((*team_member).clone(), State::TooEarly { stand_up_time });
                     }
