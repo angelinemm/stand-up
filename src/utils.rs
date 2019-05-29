@@ -50,6 +50,10 @@ impl TimeOfDay {
             .with_hour(hour.into())
             .ok_or(())?
             .with_minute(min.into())
+            .ok_or(())?
+            .with_second(0)
+            .ok_or(())?
+            .with_nanosecond(0)
             .ok_or(())
     }
 }
