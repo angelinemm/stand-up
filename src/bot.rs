@@ -73,6 +73,13 @@ impl Bot {
         );
     }
 
+    fn say_goodbye(&self, team_member: &TeamMember) {
+        self.post_message(
+            &team_member.dm_id,
+            "All done for the day, speak to you tomorrow!",
+        );
+    }
+
     fn question(&self, team_member: &TeamMember, question: u8) {
         let question = &self.config.questions[(question - 1) as usize];
         self.post_message(&team_member.dm_id, question);
@@ -182,6 +189,7 @@ impl Bot {
                             "TRANSITION ({}): Answer to last question received. Stand up done",
                             team_member
                         );
+                        self.say_goodbye(&team_member);
                         self.post_stand_up(&team_member);
                         self.state.insert(team_member, State::Done);
                     } else {
