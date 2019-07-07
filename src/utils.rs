@@ -1,6 +1,4 @@
 use chrono::{DateTime, Timelike, Utc};
-use config::Config;
-use slack::{RtmClient, User as SlackUser};
 use std::fmt;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -58,15 +56,6 @@ impl TimeOfDay {
     }
 }
 
-pub struct StandUpConfig {
-    pub api_key: String,
-    pub channel_id: String,
-    pub team_members: Vec<TeamMember>,
-    pub stand_up_time: TimeOfDay,
-    pub number_of_questions: u8,
-    pub questions: Vec<String>,
-}
-
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct TeamMember {
     pub name: String,
@@ -78,72 +67,6 @@ impl fmt::Display for TeamMember {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.name)
     }
-}
-
-pub fn get_stand_up_config(client: &RtmClient, config: &Config) -> Result<StandUpConfig, ()> {
-    let api_key: String = config.get_str("api_key").map_err(|_| ())?;
-    let channel: String = config.get_str("channel").map_err(|_| ())?;
-    let stand_up_time =
-        TimeOfDay::from_str(&config.get_str("stand_up_time").map_err(|_| ())?).map_err(|_| ())?;
-    let number_of_questions: u8 = config.get_int("number_of_questions").map_err(|_| ())? as u8;
-    let questions: Vec<String> = (1..=number_of_questions)
-        .map(|i| config.get_str(&format!("q{}", i)).unwrap())
-        .collect();
-    let team_members: Vec<String> = config
-        .get_str("team_members")
-        .unwrap()
-        .split(',')
-        .map(ToString::to_string)
-        .collect();
-    let channel_id = client
-        .start_response()
-        .channels
-        .as_ref()
-        .and_then(|channels| {
-            channels.iter().find(|chan| match chan.name {
-                None => false,
-                Some(ref name) => name == &channel,
-            })
-        })
-        .and_then(|chan| chan.id.clone())
-        .expect("Could not find channel for stand-up :( ");
-    let users: Vec<&SlackUser> = client
-        .start_response()
-        .users
-        .as_ref()
-        .expect("No users found")
-        .iter()
-        .filter(|user| match user.name {
-            None => false,
-            Some(ref name) => team_members.contains(name),
-        })
-        .collect();
-    let team_members: Vec<TeamMember> = client
-        .start_response()
-        .ims
-        .as_ref()
-        .expect("No direct messages found")
-        .iter()
-        .filter_map(|dm| match users.iter().find(|user| user.id == dm.user) {
-            None => None,
-            Some(ref user) => Some(TeamMember {
-                name: user
-                    .name
-                    .clone()
-                    .unwrap_or_else(|| "Unknown name".to_string()),
-                id: user.id.clone().expect("User without an id"),
-                dm_id: dm.id.clone().expect("DM without an id"),
-            }),
-        })
-        .collect();
-    Ok(StandUpConfig {
-        api_key,
-        channel_id,
-        team_members,
-        stand_up_time,
-        number_of_questions,
-        questions,
-    })
 }
 
 #[cfg(test)]

@@ -1,8 +1,0 @@
-api_key="Api key"
-channel="stand-up-channel"
-team_members="mark,bob,jocelyn"
-stand_up_time="10:00AM"
-number_of_questions=3
-q1="What were you up to yesterday?"
-q2="What are you going to do today?"
-q3="Anything else?"

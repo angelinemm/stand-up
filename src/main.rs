@@ -1,14 +1,13 @@
 mod bot;
+mod config;
 mod handler;
 mod utils;
 
 use crate::bot::Bot;
+use crate::config::get_config;
 use crate::handler::MyHandler;
-use crate::utils::get_stand_up_config;
-use config;
 use slack::{api, Message as SlackMessage, RtmClient};
 use std::env;
-use std::path::Path;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
@@ -17,18 +16,10 @@ use std::thread;
 extern crate assert_matches;
 
 fn main() {
-    let mut config = config::Config::default();
-    let config_path = match env::var("STAND_UP_CONFIG") {
-        Ok(val) => val,
-        Err(_) => "./Settings.toml".to_string(),
-    };
-    config
-        .merge(config::File::from(Path::new(&config_path)))
-        .unwrap();
-    let api_key: String = config.get_str("api_key").unwrap();
+    let api_key: String = env::var("API_KEY").expect("Need API key");
     let (sender, receiver): (Sender<SlackMessage>, Receiver<SlackMessage>) = mpsc::channel();
     let ws_cli = RtmClient::login(&api_key).expect("Can't login websocket client");
-    let stand_up_config = get_stand_up_config(&ws_cli, &config).expect("Config error");
+    let stand_up_config = get_config(&ws_cli).expect("Config error");
     let web_cli = api::requests::default_client().unwrap();
     let listener_thread = thread::spawn(move || {
         let mut handler = MyHandler { sender };

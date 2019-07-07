@@ -1,4 +1,5 @@
-use crate::utils::{StandUpConfig, TeamMember};
+use crate::config::Config;
+use crate::utils::TeamMember;
 use chrono::{DateTime, Utc};
 use reqwest::Client;
 use slack::{api, Message as SlackMessage};
@@ -13,7 +14,7 @@ pub struct Bot {
     pub client: Client,
     pub receiver: Receiver<SlackMessage>,
     pub state: HashMap<TeamMember, State>, // stand up state by user
-    pub config: StandUpConfig,
+    pub config: Config,
     pub cache: HashMap<TeamMember, Vec<String>>,
 }
 
@@ -28,7 +29,7 @@ impl Bot {
     pub fn new(
         client: Client,
         receiver: Receiver<SlackMessage>,
-        config: StandUpConfig,
+        config: Config,
     ) -> Result<Bot, ()> {
         let stand_up_time = config.stand_up_time.today()?;
         let initial_state: HashMap<TeamMember, State> = config
@@ -226,7 +227,7 @@ mod tests {
             id: "123xx".to_string(),
             dm_id: "dm_id".to_string(),
         };
-        let config = StandUpConfig {
+        let config = Config {
             api_key: "mock".to_string(),
             channel_id: "dummy".to_string(),
             team_members: vec![bob.clone()],
