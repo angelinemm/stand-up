@@ -1,1 +1,1 @@
-web: ./target/release/stand_up
+worker: ./target/release/stand_up
