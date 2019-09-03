@@ -37,9 +37,13 @@ fn main() {
         bot.stand_up_machine();
     });
     let web_thread = thread::spawn(move || {
+        let port = match env::var("PORT") {
+            Ok(p) => p,
+            Err(_) => "8080".to_string(),
+        };
         let r = HttpServer::new(|| App::new().service(web::resource("/ping").to(ping)))
             .disable_signals()
-            .bind("127.0.0.1:8080")
+            .bind(format!("{}:{}", "127.0.0.1", port))
             .expect("Could not spawn a web server!")
             .run();
         match r {
