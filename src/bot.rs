@@ -18,7 +18,7 @@ pub struct Bot {
     pub cache: HashMap<TeamMember, Vec<String>>,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum State {
     TooEarly { stand_up_time: DateTime<Utc> },
     Asked { question: u8 },
@@ -178,8 +178,9 @@ impl Bot {
                 .expect("Message from unknown user")
                 .clone();
 
-            let state = self.state.get(&team_member);
-            match state {
+            let state = self.state.clone();
+            let member_state = state.get(&team_member);
+            match member_state {
                 Some(State::Asked { question: i }) => {
                     let mut answers: Vec<String> = self.cache[&team_member].to_vec();
                     answers.push(answer.to_string());
