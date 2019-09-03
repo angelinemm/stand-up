@@ -1,11 +1,14 @@
 mod bot;
 mod config;
 mod handler;
+mod rest;
 mod utils;
 
 use crate::bot::Bot;
 use crate::config::get_config;
 use crate::handler::MyHandler;
+use crate::rest::ping;
+use actix_web::{web, App, HttpServer};
 use slack::{api, Message as SlackMessage, RtmClient};
 use std::env;
 use std::sync::mpsc;
@@ -33,6 +36,18 @@ fn main() {
         let mut bot = Bot::new(web_cli, receiver, stand_up_config).unwrap();
         bot.stand_up_machine();
     });
+    let web_thread = thread::spawn(move || {
+        let r = HttpServer::new(|| App::new().service(web::resource("/ping").to(ping)))
+            .disable_signals()
+            .bind("127.0.0.1:8080")
+            .expect("Could not spawn a web server!")
+            .run();
+        match r {
+            Ok(_) => {}
+            Err(err) => panic!("Error: {}", err),
+        }
+    });
     listener_thread.join().unwrap();
     stand_up_bot_thread.join().unwrap();
+    web_thread.join().unwrap();
 }
