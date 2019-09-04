@@ -37,15 +37,17 @@ fn main() {
         bot.stand_up_machine();
     });
     let web_thread = thread::spawn(move || {
-        let port = match env::var("PORT") {
-            Ok(p) => p,
-            Err(_) => "8080".to_string(),
-        };
-        let r = HttpServer::new(|| App::new().service(web::resource("/ping").to(ping)))
-            .disable_signals()
-            .bind(format!("{}:{}", "127.0.0.1", port))
-            .expect("Could not spawn a web server!")
-            .run();
+        let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
+        println!("Web listening on 0.0.0.0:{}", port);
+        let r = HttpServer::new(|| {
+            App::new()
+                .service(web::resource("/ping").to(ping))
+                .service(web::resource("/").to(ping))
+        })
+        .disable_signals()
+        .bind(format!("0.0.0.0:{}", port))
+        .expect("Could not spawn a web server!")
+        .run();
         match r {
             Ok(_) => {}
             Err(err) => panic!("Error: {}", err),
