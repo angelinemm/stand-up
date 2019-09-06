@@ -89,9 +89,11 @@ impl Bot {
     fn post_stand_up(&mut self, team_member: &TeamMember) {
         let stand_up: Vec<String> = self.cache[team_member].to_vec();
         self.cache.insert(team_member.clone(), Vec::new());
-        let stand_up_message: String = (1..=self.config.number_of_questions)
-            .map(|i| i as usize)
-            .map(|i| format!("*{}*: {}", self.config.questions[i - 1], stand_up[i - 1]))
+
+        let stand_up_message: String = stand_up
+            .iter()
+            .enumerate()
+            .map(|(idx, answer)| format!("*{}*: {}", self.config.questions[idx], answer))
             .collect::<Vec<String>>()
             .join("\n");
 
@@ -180,12 +182,13 @@ impl Bot {
 
             let state = self.state.clone();
             let member_state = state.get(&team_member);
+            let last_question = self.config.questions.len() as u8;
             match member_state {
                 Some(State::Asked { question: i }) => {
                     let mut answers: Vec<String> = self.cache[&team_member].to_vec();
                     answers.push(answer.to_string());
                     self.cache.insert(team_member.clone(), answers);
-                    if *i == self.config.number_of_questions {
+                    if *i == last_question {
                         // It was the last question
                         println!(
                             "TRANSITION ({}): Answer to last question received. Stand up done",
@@ -233,7 +236,6 @@ mod tests {
             channel_id: "dummy".to_string(),
             team_members: vec![bob.clone()],
             stand_up_time: TimeOfDay::from_str("9:00AM").unwrap(),
-            number_of_questions: 1,
             questions: vec!["What's up?".to_string()],
         };
         let client = Client::new();

@@ -7,7 +7,6 @@ pub struct Config {
     pub channel_id: String,
     pub team_members: Vec<TeamMember>,
     pub stand_up_time: TimeOfDay,
-    pub number_of_questions: u8,
     pub questions: Vec<String>,
 }
 
@@ -17,13 +16,21 @@ pub fn get_config(api_key: &str) -> Result<Config, ()> {
     let channel: String = env::var("CHANNEL").map_err(|_| ())?;
     let stand_up_time =
         TimeOfDay::from_str(&env::var("STAND_UP_TIME").map_err(|_| ())?).map_err(|_| ())?;
-    let number_of_questions: u8 = env::var("NUMBER_OF_QUESTIONS")
-        .map_err(|_| ())?
-        .parse()
-        .unwrap();
-    let questions: Vec<String> = (1..=number_of_questions)
-        .map(|i| env::var(&format!("Q{}", i)).unwrap())
-        .collect();
+    let mut questions: Vec<String> = Vec::new();
+    let mut stop = false;
+    let mut question_idx = 1;
+    while !stop {
+        let r = env::var(&format!("Q{}", question_idx));
+        match r {
+            Ok(question) => {
+                questions.push(question);
+                question_idx += 1;
+            }
+            Err(_) => {
+                stop = true;
+            }
+        }
+    }
     let team_members: Vec<String> = env::var("TEAM_MEMBERS")
         .unwrap()
         .split(',')
@@ -75,7 +82,6 @@ pub fn get_config(api_key: &str) -> Result<Config, ()> {
         channel_id,
         team_members,
         stand_up_time,
-        number_of_questions,
         questions,
     })
 }
