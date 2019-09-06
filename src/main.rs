@@ -9,6 +9,7 @@ use crate::config::get_config;
 use crate::handler::MyHandler;
 use crate::rest::ping;
 use actix_web::{web, App, HttpServer};
+use chrono::{Duration, Utc};
 use slack::{api, Message as SlackMessage, RtmClient};
 use std::env;
 use std::sync::mpsc;
@@ -21,15 +22,32 @@ extern crate assert_matches;
 fn main() {
     let api_key: String = env::var("API_KEY").expect("Need API key");
     let (sender, receiver): (Sender<SlackMessage>, Receiver<SlackMessage>) = mpsc::channel();
-    let ws_cli = RtmClient::login(&api_key).expect("Can't login websocket client");
     let stand_up_config = get_config(&api_key).expect("Config error");
     let web_cli = api::requests::default_client().unwrap();
     let listener_thread = thread::spawn(move || {
+        let max_retries = 10;
         let mut handler = MyHandler { sender };
-        let r = ws_cli.run(&mut handler);
-        match r {
-            Ok(_) => {}
-            Err(err) => panic!("Listener thread error: {}", err),
+        let mut retries = 0;
+        let mut last_error = Utc::now() - Duration::days(36500);
+        loop {
+            let r = RtmClient::login_and_run(&api_key, &mut handler);
+            match r {
+                Ok(_) => {}
+                Err(err) => {
+                    let time_since_last_error = Utc::now() - last_error;
+                    if time_since_last_error > Duration::minutes(1) {
+                        retries = 1;
+                    } else {
+                        retries += 1;
+                    }
+                    last_error = Utc::now();
+                    if retries > max_retries {
+                        panic!("Listener thread error: {}", err);
+                    } else {
+                        println!("Listener thread error, retry {}: {}", retries, err);
+                    }
+                }
+            }
         }
     });
     let stand_up_bot_thread = thread::spawn(move || {
