@@ -29,7 +29,7 @@ fn main() {
         let r = ws_cli.run(&mut handler);
         match r {
             Ok(_) => {}
-            Err(err) => panic!("Error: {}", err),
+            Err(err) => panic!("Listener thread error: {}", err),
         }
     });
     let stand_up_bot_thread = thread::spawn(move || {
@@ -50,7 +50,7 @@ fn main() {
         .run();
         match r {
             Ok(_) => {}
-            Err(err) => panic!("Error: {}", err),
+            Err(err) => panic!("Web thread error: {}", err),
         }
     });
     listener_thread.join().unwrap();
