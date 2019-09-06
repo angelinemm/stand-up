@@ -11,7 +11,8 @@ pub struct Config {
     pub questions: Vec<String>,
 }
 
-pub fn get_config(client: &RtmClient) -> Result<Config, ()> {
+pub fn get_config(api_key: &str) -> Result<Config, ()> {
+    let config_cli = RtmClient::login(api_key).expect("Can't login config client");
     let api_key: String = env::var("API_KEY").map_err(|_| ())?;
     let channel: String = env::var("CHANNEL").map_err(|_| ())?;
     let stand_up_time =
@@ -28,7 +29,7 @@ pub fn get_config(client: &RtmClient) -> Result<Config, ()> {
         .split(',')
         .map(ToString::to_string)
         .collect();
-    let channel_id = client
+    let channel_id = config_cli
         .start_response()
         .channels
         .as_ref()
@@ -40,7 +41,7 @@ pub fn get_config(client: &RtmClient) -> Result<Config, ()> {
         })
         .and_then(|chan| chan.id.clone())
         .expect("Could not find channel for stand-up :( ");
-    let users: Vec<&SlackUser> = client
+    let users: Vec<&SlackUser> = config_cli
         .start_response()
         .users
         .as_ref()
@@ -51,7 +52,7 @@ pub fn get_config(client: &RtmClient) -> Result<Config, ()> {
             Some(ref name) => team_members.contains(name),
         })
         .collect();
-    let team_members: Vec<TeamMember> = client
+    let team_members: Vec<TeamMember> = config_cli
         .start_response()
         .ims
         .as_ref()

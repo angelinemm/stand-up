@@ -22,7 +22,7 @@ fn main() {
     let api_key: String = env::var("API_KEY").expect("Need API key");
     let (sender, receiver): (Sender<SlackMessage>, Receiver<SlackMessage>) = mpsc::channel();
     let ws_cli = RtmClient::login(&api_key).expect("Can't login websocket client");
-    let stand_up_config = get_config(&ws_cli).expect("Config error");
+    let stand_up_config = get_config(&api_key).expect("Config error");
     let web_cli = api::requests::default_client().unwrap();
     let listener_thread = thread::spawn(move || {
         let mut handler = MyHandler { sender };
